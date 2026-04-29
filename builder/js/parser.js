@@ -19,9 +19,24 @@ function parseTSV(rawText) {
       return;
     }
 
-    const qtext      = parts[1].trim();
-    const correctIdx = parseInt(parts[parts.length - 1].trim());
-    const choices    = parts.slice(2, parts.length - 1).map(c => c.trim()).filter(Boolean);
+    const qtext   = parts[1].trim();
+    const last    = parts[parts.length - 1].trim();
+    const lastNum = parseInt(last);
+    let correctIdx, feedback, choiceEnd;
+
+    if (!isNaN(lastNum)) {
+      // Old format: CorrectIndex is the last column
+      correctIdx = lastNum;
+      feedback   = null;
+      choiceEnd  = parts.length - 1;
+    } else {
+      // New format: last column is feedback text, second-to-last is CorrectIndex
+      correctIdx = parseInt(parts[parts.length - 2].trim());
+      feedback   = last || null;
+      choiceEnd  = parts.length - 2;
+    }
+
+    const choices = parts.slice(2, choiceEnd).map(c => c.trim()).filter(Boolean);
 
     if (!qtext)            { errors.push(`Row ${i + 1}: empty question text`); return; }
     if (choices.length < 2){ errors.push(`Row ${i + 1}: need at least 2 choices`); return; }
@@ -29,7 +44,7 @@ function parseTSV(rawText) {
       errors.push(`Row ${i + 1}: invalid correct index ${correctIdx}`);
       return;
     }
-    questions.push({ type: qtype, text: qtext, choices, correct: correctIdx });
+    questions.push({ type: qtype, text: qtext, choices, correct: correctIdx, feedback });
   });
 
   return { questions, errors };

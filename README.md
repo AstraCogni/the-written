@@ -24,9 +24,9 @@ Or click **▶ Preview Quiz** to see your quiz in a new browser tab instantly be
 Tab-separated values (`.tsv`), one question per row. First row is a header and is always skipped.
 
 ```
-QuestionType	QuestionText	Choice1	Choice2	Choice3	Choice4	CorrectIndex
-MC	What does PASS stand for?	Pull, Aim, Squeeze, Sweep	Panic, Abandon, Spray, Surrender	Point, Aim, Squirt, Soak		0
-TF	Scene safety is assessed once on arrival.	True	False				1
+QuestionType	QuestionText	Choice1	Choice2	Choice3	Choice4	CorrectIndex	Feedback
+MC	What does PASS stand for?	Pull, Aim, Squeeze, Sweep	Panic, Abandon, Spray, Surrender	Point, Aim, Squirt, Soak		0	Pull the pin, Aim at the base of the fire, Squeeze the handle, Sweep side to side.
+TF	Scene safety is assessed once on arrival.	True	False				1	Scene conditions change. Re-evaluate continuously — not just on arrival.
 ```
 
 | Column | Description |
@@ -34,7 +34,10 @@ TF	Scene safety is assessed once on arrival.	True	False				1
 | `QuestionType` | `MC` for multiple choice, `TF` for true/false |
 | `QuestionText` | The question stem |
 | `Choice1...ChoiceN` | Answer choices — up to 5 supported |
-| `CorrectIndex` | Zero-based index of the correct answer (always last column) |
+| `CorrectIndex` | Zero-based index of the correct answer |
+| `Feedback` | *(Optional)* Explanation shown after the learner answers |
+
+The `Feedback` column is optional. Rows without it work exactly as before — just end the row with `CorrectIndex`.
 
 ### Logo / Seal
 

@@ -101,3 +101,38 @@ test('trims whitespace from values', () => {
   assert.deepEqual(questions[0].choices, ['Yes', 'No']);
   assert.equal(questions[0].correct, 1);
 });
+
+// ── Feedback column (new format) ─────────────────────────────────────────────
+
+test('new format: parses feedback column', () => {
+  const { questions, errors } = parseTSV('header\nMC\tWhat color is the sky?\tBlue\tRed\t0\tLight scatters — Rayleigh scattering makes it blue.');
+  assert.equal(errors.length, 0);
+  assert.equal(questions[0].correct, 0);
+  assert.equal(questions[0].feedback, 'Light scatters — Rayleigh scattering makes it blue.');
+  assert.deepEqual(questions[0].choices, ['Blue', 'Red']);
+});
+
+test('new format: TF with feedback', () => {
+  const { questions } = parseTSV('header\nTF\tFire is hot.\tTrue\tFalse\t0\tYes. Fire is hot. You are correct.');
+  assert.equal(questions[0].correct, 0);
+  assert.equal(questions[0].feedback, 'Yes. Fire is hot. You are correct.');
+  assert.deepEqual(questions[0].choices, ['True', 'False']);
+});
+
+test('old format: feedback is null (backwards compatible)', () => {
+  const { questions } = parseTSV('header\nMC\tWhat color is the sky?\tBlue\tRed\t0');
+  assert.equal(questions[0].feedback, null);
+});
+
+test('new format: empty feedback string becomes null', () => {
+  const { questions } = parseTSV('header\nMC\tWhat color is the sky?\tBlue\tRed\t0\t');
+  assert.equal(questions[0].correct, 0);
+  assert.equal(questions[0].feedback, null);
+});
+
+test('new format: feedback with empty choice columns still filters correctly', () => {
+  const { questions } = parseTSV('header\nMC\tQ?\tA\tB\tC\t\t2\tC is the answer because reasons.');
+  assert.equal(questions[0].choices.length, 3);
+  assert.equal(questions[0].correct, 2);
+  assert.equal(questions[0].feedback, 'C is the answer because reasons.');
+});
