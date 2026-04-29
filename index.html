@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Written</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link rel="stylesheet" href="builder/css/builder.css">
+</head>
+<body>
+
+<div id="file-protocol-warning" style="display:none;background:#f0a500;color:#0a0c0f;font-family:var(--mono);font-size:11px;padding:8px 16px;text-align:center;letter-spacing:1px;z-index:999;position:relative;">
+  ⚠ FILE:// PROTOCOL DETECTED — File uploads may be blocked by your browser. 
+  Use <strong>Paste TSV</strong> in Step 1 instead, or serve this file via a local web server.
+  <button onclick="this.parentElement.style.display='none'" style="margin-left:12px;background:none;border:1px solid #0a0c0f;color:#0a0c0f;cursor:pointer;font-family:var(--mono);font-size:10px;padding:2px 8px;">DISMISS</button>
+</div>
+
+<!-- ══ HEADER ══ -->
+<header class="app-header">
+  <div class="header-brand">
+    <div class="header-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    <div>
+      <div class="brand-text">The Written</div>
+      <div class="brand-ver">Make it matter. Make it written.</div>
+    </div>
+  </div>
+  <div class="header-status">
+    <div class="status-pill">
+      <span class="status-dot" id="dot-questions"></span>
+      <span id="status-questions">NO QUESTIONS</span>
+    </div>
+    <div class="status-pill">
+      <span class="status-dot" id="dot-logo"></span>
+      <span id="status-logo">NO LOGO</span>
+    </div>
+    <div class="status-pill">
+      <span class="status-dot active"></span>
+      <span>CLIENT-SIDE · NO SERVER</span>
+    </div>
+    <button class="help-btn" onclick="toggleHelp()" title="How to use The Written">?</button>
+  </div>
+</header>
+
+<!-- ══ HELP MODAL ══ -->
+<div id="help-overlay" onclick="toggleHelp()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:2000;"></div>
+<div id="help-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2001;width:min(640px,92vw);max-height:85vh;overflow-y:auto;background:var(--surface);border:1px solid var(--accent);padding:32px 28px;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+    <div>
+      <div style="font-family:var(--cond);font-size:22px;font-weight:900;letter-spacing:2px;color:var(--accent);text-transform:uppercase;">How to Use</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:1px;margin-top:2px;">The Written · Make it matter. Make it written.</div>
+    </div>
+    <button onclick="toggleHelp()" style="background:none;border:1px solid var(--border2);color:var(--text-dim);font-family:var(--mono);font-size:12px;padding:4px 10px;cursor:pointer;letter-spacing:1px;">ESC</button>
+  </div>
+
+  <div class="help-section">
+    <div class="help-heading">Quick Start</div>
+    <ol class="help-list">
+      <li><strong>Step 1 — Questions:</strong> Upload a TSV file, paste questions directly, or click <em>load sample EMS questions</em> to try it immediately with built-in examples.</li>
+      <li><strong>Step 2 — Logo:</strong> Upload your department seal or patch. Optional but recommended.</li>
+      <li><strong>Step 3 — Configure:</strong> Set your course title, department name, pass threshold, question count, and shuffle behavior.</li>
+      <li><strong>Step 4 — Colors:</strong> Choose a preset or dial in custom colors to match your organization.</li>
+      <li>Click <strong>▶ Preview Quiz</strong> to see exactly what your crew will see — no LMS needed.</li>
+      <li>Click <strong>Generate SCORM Package</strong> — a ZIP file downloads automatically.</li>
+      <li>Log into your LMS, upload the ZIP, and assign it to your learners.</li>
+    </ol>
+  </div>
+
+  <div class="help-section">
+    <div class="help-heading">Question Bank Format</div>
+    <p class="help-p">Tab-separated values (.tsv), one question per row. First row is a header — always skipped.</p>
+    <div class="help-code">QuestionType  [TAB]  QuestionText  [TAB]  Choice1  [TAB]  Choice2...  [TAB]  CorrectIndex</div>
+    <ul class="help-list help-list-plain">
+      <li><strong>QuestionType:</strong> MC (multiple choice) or TF (true/false)</li>
+      <li><strong>CorrectIndex:</strong> Zero-based — first choice = 0, second = 1, etc. Always the last column.</li>
+      <li>Up to 5 answer choices. Empty columns between last choice and CorrectIndex are ignored.</li>
+    </ul>
+    <p class="help-p" style="margin-top:8px;">Open <strong>sample_questions.tsv</strong> in Excel to see the format in action.</p>
+  </div>
+
+  <div class="help-section">
+    <div class="help-heading">Logo / Seal</div>
+    <ul class="help-list help-list-plain">
+      <li>PNG with transparent background recommended</li>
+      <li>500×500px minimum — displayed as a circle in the quiz header and start screen</li>
+      <li>Embedded directly in the package — no external files needed</li>
+    </ul>
+  </div>
+
+  <div class="help-section">
+    <div class="help-heading">Generated Package</div>
+    <ul class="help-list help-list-plain">
+      <li>Compatible with any SCORM 1.2 or SCORM 2004 LMS</li>
+      <li>Tested on NinthBrain, SCORM Cloud, Moodle, and Canvas</li>
+      <li>Records per-question interaction data for LMS item analysis</li>
+      <li>Learners can resume mid-quiz across browser sessions</li>
+    </ul>
+  </div>
+
+  <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:0.5px;">
+    Built by Shawn Christopher &amp; Claude (Anthropic) &nbsp;·&nbsp; MIT License
+  </div>
+</div>
+
+<!-- ══ BODY ══ -->
+<div class="app-body">
+
+  <!-- ══ LEFT: BUILDER PIPELINE ══ -->
+  <div class="builder-panel">
+    <div class="pipeline">
+
+      <!-- STEP 1: QUESTIONS -->
+      <div class="step" id="step-1">
+        <div class="step-header" onclick="toggleStep(1)">
+          <div class="step-num" id="stepnum-1">01</div>
+          <div class="step-title">Question Bank</div>
+          <div class="step-state" id="stepstate-1">AWAITING INPUT</div>
+        </div>
+        <div class="step-body open" id="stepbody-1">
+          <div class="field">
+            <div class="field-label">Upload TSV File <span class="hint">— tab-separated: Type, Text, Choice1, Choice2... CorrectIdx</span></div>
+            <div class="upload-zone" id="tsv-zone">
+              <input type="file" id="tsv-file" accept=".tsv,.txt,.csv" onchange="handleTSV(event)">
+              <div class="upload-icon">⬡</div>
+              <div class="upload-text"><strong>DROP TSV FILE</strong> or click to browse</div>
+              <div class="upload-text" style="margin-top:4px; font-size:10px;">Columns: QuestionType · QuestionText · Choice1 · Choice2 · ... · CorrectIndex</div>
+            </div>
+            <div class="upload-status" id="tsv-status"></div>
+          </div>
+
+          <div class="section-divider">or paste questions manually &nbsp;·&nbsp; <button class="sample-link" onclick="loadSample()">load sample EMS questions</button></div>
+
+          <div class="field">
+            <div class="field-label">Paste TSV Data</div>
+            <textarea class="field-input" id="tsv-paste" rows="5"
+              placeholder="MC&#9;A patient rates their pain as &quot;11 out of 10.&quot; Your response:&#9;Document the reported pain level and continue your assessment&#9;Explain that 10 is the maximum on the standard scale&#9;Offer them a menu&#9;Mention that you also have back pain after 14 hours on shift&#9;0&#10;TF&#9;&quot;Diesel therapy&quot; — patients improve once loaded and moving — is a well-known EMS phenomenon.&#9;True&#9;False&#9;&#9;&#9;0"
+              oninput="parseTSVText(this.value)"></textarea>
+          </div>
+
+          <div id="qbank-preview" style="display:none;">
+            <div class="qbank-info" id="qbank-info"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: LOGO -->
+      <div class="step" id="step-2">
+        <div class="step-header" onclick="toggleStep(2)">
+          <div class="step-num" id="stepnum-2">02</div>
+          <div class="step-title">Logo / Seal</div>
+          <div class="step-state" id="stepstate-2">OPTIONAL</div>
+        </div>
+        <div class="step-body" id="stepbody-2">
+          <div class="field">
+            <div class="field-label">Department Logo <span class="hint">— PNG, JPG, SVG recommended</span></div>
+            <div class="upload-zone" id="logo-zone">
+              <input type="file" id="logo-file" accept="image/*" onchange="handleLogo(event)">
+              <div class="upload-icon" id="logo-preview-icon">⬡</div>
+              <div class="upload-text"><strong>DROP LOGO</strong> or click to browse</div>
+              <div class="upload-text" style="margin-top:4px;font-size:10px;">PNG recommended · 500×500px minimum · transparent background · displayed as circle</div>
+            </div>
+            <div class="upload-status" id="logo-status"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: COURSE CONFIG -->
+      <div class="step" id="step-3">
+        <div class="step-header" onclick="toggleStep(3)">
+          <div class="step-num" id="stepnum-3">03</div>
+          <div class="step-title">Course Configuration</div>
+          <div class="step-state" id="stepstate-3">DEFAULTS SET</div>
+        </div>
+        <div class="step-body" id="stepbody-3">
+          <div class="field-row">
+            <div class="field">
+              <div class="field-label">Course Title</div>
+              <input type="text" class="field-input" id="cfg-title" value="Knowledge Assessment"
+                oninput="updatePreview()">
+            </div>
+            <div class="field">
+              <div class="field-label">Department / Org Name</div>
+              <input type="text" class="field-input" id="cfg-dept" value="Your Organization"
+                oninput="updatePreview()">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <div class="field-label">SCORM Course ID <span class="hint">— unique, no spaces</span></div>
+              <input type="text" class="field-input" id="cfg-id" value="quiz_001"
+                oninput="updatePreview()">
+            </div>
+            <div class="field">
+              <div class="field-label">SCORM Version</div>
+              <select class="field-input" id="cfg-scorm">
+                <option value="1.2">SCORM 1.2</option>
+                <option value="2004" selected>SCORM 2004 3rd Ed. (recommended)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="section-divider">Quiz Behavior</div>
+
+          <div class="field">
+            <div class="field-label">Questions Per Attempt <span class="hint" id="q-draw-hint">— drawing from 0 available</span></div>
+            <div class="range-wrap">
+              <input type="range" id="cfg-qcount" min="5" max="100" value="25"
+                oninput="updateQCount(this.value)">
+              <div class="range-val" id="cfg-qcount-val">25</div>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">Pass Threshold</div>
+            <div class="range-wrap">
+              <input type="range" id="cfg-threshold" min="50" max="100" value="80"
+                oninput="updateThreshold(this.value)">
+              <div class="range-val" id="cfg-threshold-val">80%</div>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <div class="field-label">Shuffle Questions</div>
+              <select class="field-input" id="cfg-shuffle-q">
+                <option value="true" selected>Yes — randomize order</option>
+                <option value="false">No — fixed order</option>
+              </select>
+            </div>
+            <div class="field">
+              <div class="field-label">Shuffle Answer Choices</div>
+              <select class="field-input" id="cfg-shuffle-a">
+                <option value="true" selected>Yes — randomize choices</option>
+                <option value="false">No — fixed order</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <div class="field-label">Show Correct Answer After</div>
+              <select class="field-input" id="cfg-show-answer">
+                <option value="true" selected>Each question</option>
+                <option value="false">End of quiz only</option>
+              </select>
+            </div>
+            <div class="field">
+              <div class="field-label">Allow Retakes</div>
+              <select class="field-input" id="cfg-retakes">
+                <option value="true" selected>Yes — unlimited</option>
+                <option value="false">No — single attempt</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4: COLORS -->
+      <div class="step" id="step-4">
+        <div class="step-header" onclick="toggleStep(4)">
+          <div class="step-num" id="stepnum-4">04</div>
+          <div class="step-title">Color Theme</div>
+          <div class="step-state" id="stepstate-4">DEFAULTS SET</div>
+        </div>
+        <div class="step-body" id="stepbody-4">
+
+          <div class="section-divider">Presets</div>
+          <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+            <button class="preset-btn" onclick="applyPreset('ifd')">IFD Gold</button>
+            <button class="preset-btn" onclick="applyPreset('dark')">Dark Steel</button>
+            <button class="preset-btn" onclick="applyPreset('navy')">Navy Command</button>
+            <button class="preset-btn" onclick="applyPreset('crimson')">Crimson</button>
+            <button class="preset-btn" onclick="applyPreset('forest')">Forest</button>
+          </div>
+
+          <div class="section-divider">Custom Colors</div>
+
+          <div class="color-grid">
+            <div class="color-field">
+              <div class="color-label">Background</div>
+              <div class="color-swatch-row">
+                <input type="color" id="clr-bg" value="#120e1e" oninput="syncColor('bg', this.value)">
+                <input type="text" class="color-hex" id="hex-bg" value="#120e1e" oninput="syncColorHex('bg', this.value)">
+              </div>
+            </div>
+            <div class="color-field">
+              <div class="color-label">Surface / Cards</div>
+              <div class="color-swatch-row">
+                <input type="color" id="clr-surface" value="#1c1630" oninput="syncColor('surface', this.value)">
+                <input type="text" class="color-hex" id="hex-surface" value="#1c1630" oninput="syncColorHex('surface', this.value)">
+              </div>
+            </div>
+            <div class="color-field">
+              <div class="color-label">Border</div>
+              <div class="color-swatch-row">
+                <input type="color" id="clr-border" value="#2e2650" oninput="syncColor('border', this.value)">
+                <input type="text" class="color-hex" id="hex-border" value="#2e2650" oninput="syncColorHex('border', this.value)">
+              </div>
+            </div>
+            <div class="color-field">
+              <div class="color-label">Accent / Buttons</div>
+              <div class="color-swatch-row">
+                <input type="color" id="clr-accent" value="#cab37e" oninput="syncColor('accent', this.value)">
+                <input type="text" class="color-hex" id="hex-accent" value="#cab37e" oninput="syncColorHex('accent', this.value)">
+              </div>
+            </div>
+            <div class="color-field">
+              <div class="color-label">Text / Primary</div>
+              <div class="color-swatch-row">
+                <input type="color" id="clr-text" value="#ede8d8" oninput="syncColor('text', this.value)">
+                <input type="text" class="color-hex" id="hex-text" value="#ede8d8" oninput="syncColorHex('text', this.value)">
+              </div>
+            </div>
+            <div class="color-field">
+              <div class="color-label">Muted / Secondary</div>
+              <div class="color-swatch-row">
+                <input type="color" id="clr-muted" value="#7a7090" oninput="syncColor('muted', this.value)">
+                <input type="text" class="color-hex" id="hex-muted" value="#7a7090" oninput="syncColorHex('muted', this.value)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /pipeline -->
+
+    <!-- GENERATE -->
+    <div class="generate-wrap">
+      <button class="btn-generate" id="btn-generate" onclick="generateSCORM()" disabled>
+        <span>⬡</span> Generate SCORM Package
+      </button>
+      <button class="btn-preview" id="btn-preview" onclick="previewSCORM()" disabled>
+        &#9654; Preview Quiz
+      </button>
+      <div class="gen-note" id="gen-note">Load a question bank to enable export</div>
+    </div>
+  </div><!-- /builder-panel -->
+
+  <!-- ══ RIGHT: PREVIEW ══ -->
+  <div class="preview-panel">
+    <div class="preview-header">
+      <div class="preview-label">Live Preview</div>
+      <div class="preview-device">QUIZ SKIN</div>
+    </div>
+
+    <div class="preview-frame-wrap">
+
+      <!-- MOCK QUIZ UI -->
+      <div class="mock-quiz" id="mock-quiz">
+        <div class="mock-header" id="mock-header" style="background:#1c1630; border-bottom:1px solid #2e2650;">
+          <div class="mock-logo-placeholder" id="mock-logo-wrap">?</div>
+          <div class="mock-titles">
+            <div class="mock-dept" id="mock-dept" style="color:#7a7090;">YOUR ORGANIZATION</div>
+            <div class="mock-title" id="mock-title" style="color:#ede8d8;">Knowledge Assessment</div>
+          </div>
+        </div>
+        <div class="mock-body" id="mock-body" style="background:#120e1e;">
+          <div class="mock-q" style="color:#ede8d8;">A patient rates their pain as "11 out of 10." Your response:</div>
+          <div class="mock-choices">
+            <div class="mock-choice selected" style="background:#1e1a30; border-color:#cab37e; color:#ede8d8;">
+              <span class="mock-choice-key" style="color:#cab37e;">A</span>
+              <span>Document the reported pain level and continue your assessment ✓</span>
+            </div>
+            <div class="mock-choice" style="background:#1c1630; border-color:#2e2650; color:#ede8d8;">
+              <span class="mock-choice-key" style="color:#cab37e;">B</span>
+              <span>Explain that 10 is the maximum on the standard scale</span>
+            </div>
+            <div class="mock-choice" style="background:#1c1630; border-color:#2e2650; color:#ede8d8;">
+              <span class="mock-choice-key" style="color:#cab37e;">C</span>
+              <span>Offer them a menu</span>
+            </div>
+          </div>
+          <div class="mock-btn" id="mock-btn" style="background:#cab37e; color:#120e1e;">NEXT →</div>
+        </div>
+      </div>
+
+      <!-- MANIFEST PREVIEW -->
+      <div>
+        <div style="font-family:var(--mono); font-size:10px; color:var(--accent); letter-spacing:1px; margin-bottom:6px; text-transform:uppercase;">imsmanifest.xml Preview</div>
+        <div class="manifest-preview" id="manifest-preview">
+          <span class="xml-com">&lt;!-- Configure above to generate manifest --&gt;</span>
+        </div>
+      </div>
+
+      <!-- OUTPUT LOG -->
+      <div>
+        <div style="font-family:var(--mono); font-size:10px; color:var(--accent); letter-spacing:1px; margin-bottom:6px; text-transform:uppercase;">Build Log</div>
+        <div class="output-log" id="output-log">
+          <div class="log-line info"><span class="log-time">--:--:--</span><span class="log-msg">SCORM Builder ready. Waiting for input.</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /preview-panel -->
+
+</div><!-- /app-body -->
+
+<div style="text-align:center;padding:12px;font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:1px;border-top:1px solid var(--border);margin-top:auto;">
+  Built by Shawn Christopher &amp; Claude (Anthropic) &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; <a href="https://github.com/AstraCogni/the-written" style="color:var(--accent);text-decoration:none;">github.com/AstraCogni/the-written</a>
+</div>
+
+<script src="builder/js/presets.js"></script>
+<script src="builder/js/parser.js"></script>
+<script src="builder/js/generator.js"></script>
+<script src="builder/js/preview.js"></script>
+<script src="builder/js/app.js"></script>
+</body>
+</html>

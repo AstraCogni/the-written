@@ -1,0 +1,2013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCORM Quiz Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════
+   BUILDER APP — SCORM QUIZ GENERATOR
+   Aesthetic: Industrial / Mission Control
+═══════════════════════════════════════════ */
+:root {
+  --bg:        #0a0c0f;
+  --panel:     #10141a;
+  --surface:   #161c24;
+  --border:    #1e2a38;
+  --border2:   #2a3a4e;
+  --accent:    #00b4d8;
+  --accent2:   #0077a8;
+  --green:     #00c896;
+  --amber:     #f0a500;
+  --red:       #e03030;
+  --text:      #c8d8e8;
+  --text-dim:  #5a7080;
+  --mono:      'Share Tech Mono', monospace;
+  --sans:      'Barlow', sans-serif;
+  --cond:      'Barlow Condensed', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── SCANLINE TEXTURE ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,180,216,0.015) 2px,
+    rgba(0,180,216,0.015) 4px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── HEADER ── */
+.app-header {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex;
+  align-items: stretch;
+  height: 52px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.6);
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-right: 1px solid var(--border);
+  padding-right: 20px;
+  margin-right: 20px;
+}
+
+.header-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+.header-icon svg { width: 16px; height: 16px; fill: var(--bg); }
+
+.brand-text {
+  font-family: var(--cond);
+  font-weight: 900;
+  font-size: 16px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.brand-ver {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 1px;
+}
+
+.header-status {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-left: auto;
+}
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-dim);
+}
+
+.status-dot.active { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.status-dot.warn   { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+
+/* ── LAYOUT ── */
+.app-body {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  flex: 1;
+  min-height: calc(100vh - 52px);
+  position: relative;
+  z-index: 1;
+}
+
+/* ── LEFT PANEL — BUILDER ── */
+.builder-panel {
+  padding: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+}
+
+.pipeline {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── STEP BLOCKS ── */
+.step {
+  border-bottom: 1px solid var(--border);
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 24px;
+  cursor: pointer;
+  user-select: none;
+  background: var(--panel);
+  transition: background 0.15s;
+}
+
+.step-header:hover { background: var(--surface); }
+
+.step-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  background: rgba(0,180,216,0.1);
+  border: 1px solid rgba(0,180,216,0.3);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.step-num.done {
+  background: rgba(0,200,150,0.15);
+  border-color: rgba(0,200,150,0.4);
+  color: var(--green);
+}
+
+.step-title {
+  font-family: var(--cond);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  flex: 1;
+}
+
+.step-state {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.step-state.ok { color: var(--green); }
+.step-state.warn { color: var(--amber); }
+
+.step-body {
+  padding: 20px 24px 24px;
+  background: var(--surface);
+  display: none;
+}
+
+.step-body.open { display: block; animation: slideDown 0.2s ease; }
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── FORM ELEMENTS ── */
+.field { margin-bottom: 16px; }
+.field:last-child { margin-bottom: 0; }
+
+.field-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.field-label .hint {
+  color: var(--text-dim);
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-family: var(--sans);
+}
+
+.field-input {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 9px 12px;
+  font-family: var(--sans);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.field-input:focus { border-color: var(--accent); }
+.field-input::placeholder { color: var(--text-dim); }
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.field-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── RANGE SLIDER ── */
+.range-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.range-wrap input[type=range] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 3px;
+  background: var(--border2);
+  outline: none;
+  border-radius: 2px;
+}
+
+.range-wrap input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--accent);
+  cursor: pointer;
+  border-radius: 0;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+
+.range-val {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--accent);
+  min-width: 40px;
+  text-align: right;
+}
+
+/* ── COLOR PICKER ROW ── */
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.color-field { }
+
+.color-field .color-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-bottom: 5px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.color-swatch-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  padding: 6px 8px;
+}
+
+.color-swatch-row input[type=color] {
+  width: 28px;
+  height: 24px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.color-hex {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  background: none;
+  border: none;
+  outline: none;
+  width: 70px;
+}
+
+/* ── UPLOAD ZONE ── */
+.upload-zone {
+  border: 1px dashed var(--border2);
+  padding: 28px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--panel);
+  position: relative;
+}
+
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--accent);
+  background: rgba(0,180,216,0.04);
+}
+
+.upload-zone input[type=file] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.upload-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+  color: var(--text-dim);
+}
+
+.upload-text {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+.upload-text strong { color: var(--accent); }
+
+.upload-status {
+  font-family: var(--mono);
+  font-size: 11px;
+  margin-top: 10px;
+  padding: 6px 10px;
+  display: none;
+}
+
+.upload-status.ok {
+  background: rgba(0,200,150,0.1);
+  border: 1px solid rgba(0,200,150,0.3);
+  color: var(--green);
+  display: block;
+}
+
+.upload-status.err {
+  background: rgba(224,48,48,0.1);
+  border: 1px solid rgba(224,48,48,0.3);
+  color: var(--red);
+  display: block;
+}
+
+/* ── Q-BANK PREVIEW ── */
+.qbank-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-top: 14px;
+}
+
+.qbank-cell {
+  background: var(--panel);
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.qbank-cell .n {
+  font-family: var(--mono);
+  font-size: 20px;
+  color: var(--accent);
+}
+
+.qbank-cell .l {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ── GENERATE BUTTON ── */
+.generate-wrap {
+  padding: 24px;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+}
+
+.btn-generate {
+  width: 100%;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  font-family: var(--cond);
+  font-weight: 900;
+  font-size: 16px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+}
+
+.btn-generate:hover {
+  background: #00d4ff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0,180,216,0.4);
+}
+
+.btn-generate:active { transform: translateY(0); }
+
+.btn-generate:disabled {
+  background: var(--border2);
+  color: var(--text-dim);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.gen-note {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  text-align: center;
+  margin-top: 10px;
+  letter-spacing: 0.5px;
+}
+
+/* ── RIGHT PANEL — PREVIEW ── */
+.preview-panel {
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 52px;
+  height: calc(100vh - 52px);
+  overflow: hidden;
+}
+
+.preview-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.preview-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preview-label::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  display: inline-block;
+  animation: blink 1.5s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+.preview-device {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.preview-frame-wrap {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── PREVIEW MOCK ── */
+.mock-quiz {
+  border: 1px solid var(--border2);
+  overflow: hidden;
+  flex: 1;
+}
+
+.mock-header {
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mock-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,0.2);
+  flex-shrink: 0;
+}
+
+.mock-logo-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--border2);
+  border: 1px dashed var(--border2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.mock-titles { flex: 1; overflow: hidden; }
+
+.mock-dept {
+  font-family: var(--cond);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mock-title {
+  font-family: var(--cond);
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mock-body {
+  padding: 14px;
+}
+
+.mock-q {
+  font-family: var(--cond);
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 10px;
+  line-height: 1.3;
+  opacity: 0.9;
+}
+
+.mock-choices { display: flex; flex-direction: column; gap: 6px; }
+
+.mock-choice {
+  padding: 8px 10px;
+  font-size: 11px;
+  border: 1px solid;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  opacity: 0.85;
+}
+
+.mock-choice-key {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.mock-choice.selected { opacity: 1; }
+
+.mock-btn {
+  margin-top: 14px;
+  padding: 9px 20px;
+  font-family: var(--cond);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  border: none;
+  cursor: default;
+  display: inline-block;
+}
+
+/* ── MANIFEST PREVIEW ── */
+.manifest-preview {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 12px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.manifest-preview .xml-tag   { color: #569cd6; }
+.manifest-preview .xml-attr  { color: #9cdcfe; }
+.manifest-preview .xml-val   { color: #ce9178; }
+.manifest-preview .xml-com   { color: #608b4e; }
+
+/* ── OUTPUT LOG ── */
+.output-log {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1.8;
+  min-height: 60px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.log-line { display: flex; gap: 8px; }
+.log-time { color: var(--text-dim); opacity: 0.5; flex-shrink: 0; }
+.log-line.ok   .log-msg { color: var(--green); }
+.log-line.warn .log-msg { color: var(--amber); }
+.log-line.err  .log-msg { color: var(--red); }
+.log-line.info .log-msg { color: var(--accent); }
+
+/* ── SECTION DIVIDERS ── */
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 12px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.section-divider::before,
+.section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent2); }
+
+/* ── RESPONSIVE — BUILDER APP ── */
+@media (max-width: 900px) {
+  .app-body {
+    grid-template-columns: 1fr;
+  }
+  .preview-panel {
+    display: none;
+  }
+  .header-status {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-header {
+    padding: 0 12px;
+    height: 46px;
+  }
+  .brand-text { font-size: 13px; letter-spacing: 2px; }
+  .brand-ver  { display: none; }
+  .header-brand { padding-right: 12px; margin-right: 12px; }
+  .builder-panel { padding: 0; }
+  .step-header { padding: 12px 16px; }
+  .step-body   { padding: 16px; }
+  .field-row, .field-row-3 {
+    grid-template-columns: 1fr;
+  }
+  .color-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .generate-wrap { padding: 16px; }
+  .btn-generate  { font-size: 14px; padding: 14px; }
+  .qbank-info    { grid-template-columns: 1fr 1fr 1fr; }
+}
+
+@media (max-width: 400px) {
+  .color-grid { grid-template-columns: 1fr 1fr; }
+  .step-title { font-size: 12px; letter-spacing: 1px; }
+}
+</style>
+</head>
+<body>
+
+<div id="file-protocol-warning" style="display:none;background:#f0a500;color:#0a0c0f;font-family:var(--mono);font-size:11px;padding:8px 16px;text-align:center;letter-spacing:1px;z-index:999;position:relative;">
+  ⚠ FILE:// PROTOCOL DETECTED — File uploads may be blocked by your browser. 
+  Use <strong>Paste TSV</strong> in Step 1 instead, or serve this file via a local web server.
+  <button onclick="this.parentElement.style.display='none'" style="margin-left:12px;background:none;border:1px solid #0a0c0f;color:#0a0c0f;cursor:pointer;font-family:var(--mono);font-size:10px;padding:2px 8px;">DISMISS</button>
+</div>
+
+<!-- ══ HEADER ══ -->
+<header class="app-header">
+  <div class="header-brand">
+    <div class="header-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    <div>
+      <div class="brand-text">SCORM Builder</div>
+      <div class="brand-ver">v1.0 · SCORM 1.2</div>
+    </div>
+  </div>
+  <div class="header-status">
+    <div class="status-pill">
+      <span class="status-dot" id="dot-questions"></span>
+      <span id="status-questions">NO QUESTIONS</span>
+    </div>
+    <div class="status-pill">
+      <span class="status-dot" id="dot-logo"></span>
+      <span id="status-logo">NO LOGO</span>
+    </div>
+    <div class="status-pill">
+      <span class="status-dot active"></span>
+      <span>CLIENT-SIDE · NO SERVER</span>
+    </div>
+  </div>
+</header>
+
+<!-- ══ BODY ══ -->
+<div class="app-body">
+
+  <!-- ══ LEFT: BUILDER PIPELINE ══ -->
+  <div class="builder-panel">
+    <div class="pipeline">
+
+      <!-- STEP 1: QUESTIONS -->
+      <div class="step" id="step-1">
+        <div class="step-header" onclick="toggleStep(1)">
+          <div class="step-num" id="stepnum-1">01</div>
+          <div class="step-title">Question Bank</div>
+          <div class="step-state" id="stepstate-1">AWAITING INPUT</div>
+        </div>
+        <div class="step-body open" id="stepbody-1">
+          <div class="field">
+            <div class="field-label">Upload TSV File <span class="hint">— tab-separated: Type, Text, Choice1, Choice2... CorrectIdx</span></div>
+            <div class="upload-zone" id="tsv-zone">
+              <input type="file" id="tsv-file" accept=".tsv,.txt,.csv" onchange="handleTSV(event)">
+              <div class="upload-icon">⬡</div>
+              <div class="upload-text"><strong>DROP TSV FILE</strong> or click to browse</div>
+              <div class="upload-text" style="margin-top:4px; font-size:10px;">Columns: QuestionType · QuestionText · Choice1 · Choice2 · ... · CorrectIndex</div>
+            </div>
+            <div class="upload-status" id="tsv-status"></div>
+          </div>
+
+          <div class="section-divider">or paste questions manually</div>
+
+          <div class="field">
+            <div class="field-label">Paste TSV Data</div>
+            <textarea class="field-input" id="tsv-paste" rows="5"
+              placeholder="MC&#9;What is the attack stairwell?&#9;Lobby stairwell&#9;Attack stairwell&#9;Evacuation stairwell&#9;1&#10;TF&#9;An annunciator panel displays alarms.&#9;True&#9;False&#9;0"
+              oninput="parseTSVText(this.value)"></textarea>
+          </div>
+
+          <div id="qbank-preview" style="display:none;">
+            <div class="qbank-info" id="qbank-info"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: LOGO -->
+      <div class="step" id="step-2">
+        <div class="step-header" onclick="toggleStep(2)">
+          <div class="step-num" id="stepnum-2">02</div>
+          <div class="step-title">Logo / Seal</div>
+          <div class="step-state" id="stepstate-2">OPTIONAL</div>
+        </div>
+        <div class="step-body" id="stepbody-2">
+          <div class="field">
+            <div class="field-label">Department Logo <span class="hint">— PNG, JPG, SVG recommended</span></div>
+            <div class="upload-zone" id="logo-zone">
+              <input type="file" id="logo-file" accept="image/*" onchange="handleLogo(event)">
+              <div class="upload-icon" id="logo-preview-icon">⬡</div>
+              <div class="upload-text"><strong>DROP LOGO</strong> or click to browse</div>
+            </div>
+            <div class="upload-status" id="logo-status"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: COURSE CONFIG -->
+      <div class="step" id="step-3">
+        <div class="step-header" onclick="toggleStep(3)">
+          <div class="step-num" id="stepnum-3">03</div>
+          <div class="step-title">Course Configuration</div>
+          <div class="step-state" id="stepstate-3">DEFAULTS SET</div>
+        </div>
+        <div class="step-body" id="stepbody-3">
+          <div class="field-row">
+            <div class="field">
+              <div class="field-label">Course Title</div>
+              <input type="text" class="field-input" id="cfg-title" value="Knowledge Assessment"
+                oninput="updatePreview()">
+            </div>
+            <div class="field">
+              <div class="field-label">Department / Org Name</div>
+              <input type="text" class="field-input" id="cfg-dept" value="Fire Department"
+                oninput="updatePreview()">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <div class="field-label">SCORM Course ID <span class="hint">— unique, no spaces</span></div>
+              <input type="text" class="field-input" id="cfg-id" value="quiz_001"
+                oninput="updatePreview()">
+            </div>
+            <div class="field">
+              <div class="field-label">SCORM Version</div>
+              <select class="field-input" id="cfg-scorm">
+                <option value="1.2">SCORM 1.2</option>
+                <option value="2004" selected>SCORM 2004 3rd Ed. (recommended)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="section-divider">Quiz Behavior</div>
+
+          <div class="field">
+            <div class="field-label">Questions Per Attempt <span class="hint" id="q-draw-hint">— drawing from 0 available</span></div>
+            <div class="range-wrap">
+              <input type="range" id="cfg-qcount" min="5" max="100" value="25"
+                oninput="updateQCount(this.value)">
+              <div class="range-val" id="cfg-qcount-val">25</div>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">Pass Threshold</div>
+            <div class="range-wrap">
+              <input type="range" id="cfg-threshold" min="50" max="100" value="80"
+                oninput="updateThreshold(this.value)">
+              <div class="range-val" id="cfg-threshold-val">80%</div>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <div class="field-label">Shuffle Questions</div>
+              <select class="field-input" id="cfg-shuffle-q">
+                <option value="true" selected>Yes — randomize order</option>
+                <option value="false">No — fixed order</option>
+              </select>
+            </div>
+            <div class="field">
+              <div class="field-label">Shuffle Answer Choices</div>
+              <select class="field-input" id="cfg-shuffle-a">
+                <option value="true" selected>Yes — randomize choices</option>
+                <option value="false">No — fixed order</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <div class="field-label">Show Correct Answer After</div>
+              <select class="field-input" id="cfg-show-answer">
+                <option value="true" selected>Each question</option>
+                <option value="false">End of quiz only</option>
+              </select>
+            </div>
+            <div class="field">
+              <div class="field-label">Allow Retakes</div>
+              <select class="field-input" id="cfg-retakes">
+                <option value="true" selected>Yes — unlimited</option>
+                <option value="false">No — single attempt</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4: COLORS -->
+      <div class="step" id="step-4">
+        <div class="step-header" onclick="toggleStep(4)">
+          <div class="step-num" id="stepnum-4">04</div>
+          <div class="step-title">Color Theme</div>
+          <div class="step-state" id="stepstate-4">DEFAULTS SET</div>
+        </div>
+        <div class="step-body" id="stepbody-4">
+
+          <div class="section-divider">Presets</div>
+          <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+            <button class="preset-btn" onclick="applyPreset('ifd')">IFD Gold</button>
+            <button class="preset-btn" onclick="applyPreset('dark')">Dark Steel</button>
+            <button class="preset-btn" onclick="applyPreset('navy')">Navy Command</button>
+            <button class="preset-btn" onclick="applyPreset('crimson')">Crimson</button>
+            <button class="preset-btn" onclick="applyPreset('forest')">Forest</button>
+          </div>
+
+          <div class="section-divider">Custom Colors</div>
+
+          <div class="color-grid">
+            <div class="color-field">
+              <div class="color-label">Background</div>
+              <div class="color-swatch-row">
+                <input type="color" id="clr-bg" value="#120e1e" oninput="syncColor('bg', this.value)">
+                <input type="text" class="color-hex" id="hex-bg" value="#120e1e" oninput="syncColorHex('bg', this.value)">
+              </div>
+            </div>
+            <div class="color-field">
+              <div class="color-label">Surface / Cards</div>
+              <div class="color-swatch-row">
+                <input type="color" id="clr-surface" value="#1c1630" oninput="syncColor('surface', this.value)">
+                <input type="text" class="color-hex" id="hex-surface" value="#1c1630" oninput="syncColorHex('surface', this.value)">
+              </div>
+            </div>
+            <div class="color-field">
+              <div class="color-label">Border</div>
+              <div class="color-swatch-row">
+                <input type="color" id="clr-border" value="#2e2650" oninput="syncColor('border', this.value)">
+                <input type="text" class="color-hex" id="hex-border" value="#2e2650" oninput="syncColorHex('border', this.value)">
+              </div>
+            </div>
+            <div class="color-field">
+              <div class="color-label">Accent / Buttons</div>
+              <div class="color-swatch-row">
+                <input type="color" id="clr-accent" value="#cab37e" oninput="syncColor('accent', this.value)">
+                <input type="text" class="color-hex" id="hex-accent" value="#cab37e" oninput="syncColorHex('accent', this.value)">
+              </div>
+            </div>
+            <div class="color-field">
+              <div class="color-label">Text / Primary</div>
+              <div class="color-swatch-row">
+                <input type="color" id="clr-text" value="#ede8d8" oninput="syncColor('text', this.value)">
+                <input type="text" class="color-hex" id="hex-text" value="#ede8d8" oninput="syncColorHex('text', this.value)">
+              </div>
+            </div>
+            <div class="color-field">
+              <div class="color-label">Muted / Secondary</div>
+              <div class="color-swatch-row">
+                <input type="color" id="clr-muted" value="#7a7090" oninput="syncColor('muted', this.value)">
+                <input type="text" class="color-hex" id="hex-muted" value="#7a7090" oninput="syncColorHex('muted', this.value)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /pipeline -->
+
+    <!-- GENERATE -->
+    <div class="generate-wrap">
+      <button class="btn-generate" id="btn-generate" onclick="generateSCORM()" disabled>
+        <span>⬡</span> Generate SCORM Package
+      </button>
+      <div class="gen-note" id="gen-note">Load a question bank to enable export</div>
+    </div>
+  </div><!-- /builder-panel -->
+
+  <!-- ══ RIGHT: PREVIEW ══ -->
+  <div class="preview-panel">
+    <div class="preview-header">
+      <div class="preview-label">Live Preview</div>
+      <div class="preview-device">QUIZ SKIN</div>
+    </div>
+
+    <div class="preview-frame-wrap">
+
+      <!-- MOCK QUIZ UI -->
+      <div class="mock-quiz" id="mock-quiz">
+        <div class="mock-header" id="mock-header" style="background:#1c1630; border-bottom:1px solid #2e2650;">
+          <div class="mock-logo-placeholder" id="mock-logo-wrap">?</div>
+          <div class="mock-titles">
+            <div class="mock-dept" id="mock-dept" style="color:#7a7090;">FIRE DEPARTMENT</div>
+            <div class="mock-title" id="mock-title" style="color:#ede8d8;">Knowledge Assessment</div>
+          </div>
+        </div>
+        <div class="mock-body" id="mock-body" style="background:#120e1e;">
+          <div class="mock-q" style="color:#ede8d8;">Which stairwell is designated for the main fire attack during high-rise operations?</div>
+          <div class="mock-choices">
+            <div class="mock-choice" style="background:#1c1630; border-color:#2e2650; color:#ede8d8;">
+              <span class="mock-choice-key" style="color:#cab37e;">A</span>
+              <span>Evacuation Stairwell</span>
+            </div>
+            <div class="mock-choice selected" style="background:#1e1a30; border-color:#cab37e; color:#ede8d8;">
+              <span class="mock-choice-key" style="color:#cab37e;">B</span>
+              <span>Attack Stairwell ✓</span>
+            </div>
+            <div class="mock-choice" style="background:#1c1630; border-color:#2e2650; color:#ede8d8;">
+              <span class="mock-choice-key" style="color:#cab37e;">C</span>
+              <span>Lobby Stairwell</span>
+            </div>
+          </div>
+          <div class="mock-btn" id="mock-btn" style="background:#cab37e; color:#120e1e;">NEXT →</div>
+        </div>
+      </div>
+
+      <!-- MANIFEST PREVIEW -->
+      <div>
+        <div style="font-family:var(--mono); font-size:10px; color:var(--accent); letter-spacing:1px; margin-bottom:6px; text-transform:uppercase;">imsmanifest.xml Preview</div>
+        <div class="manifest-preview" id="manifest-preview">
+          <span class="xml-com">&lt;!-- Configure above to generate manifest --&gt;</span>
+        </div>
+      </div>
+
+      <!-- OUTPUT LOG -->
+      <div>
+        <div style="font-family:var(--mono); font-size:10px; color:var(--accent); letter-spacing:1px; margin-bottom:6px; text-transform:uppercase;">Build Log</div>
+        <div class="output-log" id="output-log">
+          <div class="log-line info"><span class="log-time">--:--:--</span><span class="log-msg">SCORM Builder ready. Waiting for input.</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /preview-panel -->
+
+</div><!-- /app-body -->
+
+<style>
+.preset-btn {
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+}
+.preset-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(0,180,216,0.05);
+}
+</style>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+const state = {
+  questions: [],
+  logoB64:   null,
+  logoMime:  'image/png',
+  colors: {
+    bg:      '#120e1e',
+    surface: '#1c1630',
+    border:  '#2e2650',
+    accent:  '#cab37e',
+    text:    '#ede8d8',
+    muted:   '#7a7090',
+  }
+};
+
+const PRESETS = {
+  ifd:     { bg:'#120e1e', surface:'#1c1630', border:'#2e2650', accent:'#cab37e', text:'#ede8d8', muted:'#7a7090' },
+  dark:    { bg:'#0d1117', surface:'#161b22', border:'#30363d', accent:'#58a6ff', text:'#e6edf3', muted:'#7d8590' },
+  navy:    { bg:'#0a0f1a', surface:'#111827', border:'#1f2d40', accent:'#38bdf8', text:'#e2e8f0', muted:'#64748b' },
+  crimson: { bg:'#120808', surface:'#1c1010', border:'#3a1010', accent:'#e05c5c', text:'#f0dede', muted:'#7a5050' },
+  forest:  { bg:'#080f0a', surface:'#0f1a10', border:'#1a3020', accent:'#4ade80', text:'#dcfce7', muted:'#4b7a5a' },
+};
+
+// ══════════════════════════════════════════════════════
+//  LOGGING
+// ══════════════════════════════════════════════════════
+function log(msg, type='info') {
+  const el = document.getElementById('output-log');
+  const now = new Date();
+  const ts = now.toTimeString().slice(0,8);
+  const line = document.createElement('div');
+  line.className = `log-line ${type}`;
+  line.innerHTML = `<span class="log-time">${ts}</span><span class="log-msg">${msg}</span>`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+// ══════════════════════════════════════════════════════
+//  STEP TOGGLE
+// ══════════════════════════════════════════════════════
+function toggleStep(n) {
+  const body = document.getElementById(`stepbody-${n}`);
+  body.classList.toggle('open');
+}
+
+// ══════════════════════════════════════════════════════
+//  TSV PARSING
+// ══════════════════════════════════════════════════════
+function handleTSV(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => parseTSVText(ev.target.result, file.name);
+  reader.readAsText(file);
+}
+
+function parseTSVText(rawText, filename) {
+  if (!rawText || !rawText.trim()) return;
+  const lines = rawText.trim().split('\n').filter(l => l.trim());
+  const questions = [];
+  const errors = [];
+
+  lines.forEach((line, i) => {
+    const parts = line.split('\t');
+    const qtype = parts[0].trim().toUpperCase();
+
+    // Skip header row silently
+    if (!['MC','TF'].includes(qtype)) {
+      if (i > 0) errors.push(`Row ${i+1}: unknown type "${qtype}" — skipped`);
+      return;
+    }
+
+    if (parts.length < 4) {
+      errors.push(`Row ${i+1}: too few columns (${parts.length})`);
+      return;
+    }
+
+    const qtext = parts[1].trim();
+    const correctIdx = parseInt(parts[parts.length - 1].trim());
+    const choices = parts.slice(2, parts.length - 1).map(c => c.trim()).filter(Boolean);
+
+    if (!qtext) { errors.push(`Row ${i+1}: empty question text`); return; }
+    if (choices.length < 2) { errors.push(`Row ${i+1}: need at least 2 choices`); return; }
+    if (isNaN(correctIdx) || correctIdx < 0 || correctIdx >= choices.length) {
+      errors.push(`Row ${i+1}: invalid correct index ${correctIdx}`);
+      return;
+    }
+    questions.push({ type: qtype, text: qtext, choices, correct: correctIdx });
+  });
+
+  if (questions.length === 0) {
+    showUploadStatus('tsv-status', 'err', `No valid questions found. ${errors[0] || ''}`);
+    return;
+  }
+
+  state.questions = questions;
+  const mc = questions.filter(q => q.type === 'MC').length;
+  const tf = questions.filter(q => q.type === 'TF').length;
+
+  showUploadStatus('tsv-status', 'ok',
+    `✓ Loaded ${questions.length} questions (${mc} MC · ${tf} T/F)${errors.length ? ` · ${errors.length} rows skipped` : ''}`);
+
+  // Update qbank info
+  document.getElementById('qbank-preview').style.display = 'block';
+  document.getElementById('qbank-info').innerHTML = `
+    <div class="qbank-cell"><div class="n">${questions.length}</div><div class="l">Total</div></div>
+    <div class="qbank-cell"><div class="n">${mc}</div><div class="l">MC</div></div>
+    <div class="qbank-cell"><div class="n">${tf}</div><div class="l">T/F</div></div>
+  `;
+
+  // Update step state
+  document.getElementById('stepnum-1').classList.add('done');
+  document.getElementById('stepstate-1').textContent = `${questions.length} LOADED`;
+  document.getElementById('stepstate-1').className = 'step-state ok';
+
+  // Update header status
+  document.getElementById('dot-questions').classList.add('active');
+  document.getElementById('status-questions').textContent = `${questions.length} QUESTIONS`;
+
+  // Update range max
+  const qRange = document.getElementById('cfg-qcount');
+  qRange.max = questions.length;
+  if (parseInt(qRange.value) > questions.length) qRange.value = questions.length;
+  updateQCount(qRange.value);
+  document.getElementById('q-draw-hint').textContent = `— drawing from ${questions.length} available`;
+
+  // Enable generate
+  document.getElementById('btn-generate').disabled = false;
+  document.getElementById('gen-note').textContent = `Ready · ${questions.length} questions · SCORM 1.2`;
+
+  updateManifestPreview();
+  if (filename) log(`Parsed "${filename}" → ${questions.length} questions loaded`, 'ok');
+  else log(`Parsed pasted data → ${questions.length} questions loaded`, 'ok');
+
+  if (errors.length) errors.forEach(e => log(e, 'warn'));
+}
+
+// ══════════════════════════════════════════════════════
+//  LOGO HANDLING
+// ══════════════════════════════════════════════════════
+function handleLogo(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    state.logoB64 = ev.target.result.split(',')[1];
+    state.logoMime = file.type || 'image/png';
+
+    // Show preview in upload zone
+    const icon = document.getElementById('logo-preview-icon');
+    icon.innerHTML = `<img src="${ev.target.result}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">`;
+
+    showUploadStatus('logo-status', 'ok', `✓ Logo loaded: ${file.name}`);
+    document.getElementById('stepnum-2').classList.add('done');
+    document.getElementById('stepstate-2').textContent = 'LOADED';
+    document.getElementById('stepstate-2').className = 'step-state ok';
+    document.getElementById('dot-logo').classList.add('active');
+    document.getElementById('status-logo').textContent = file.name.toUpperCase();
+
+    updatePreview();
+    log(`Logo loaded: ${file.name} (${(file.size/1024).toFixed(1)} KB)`, 'ok');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ══════════════════════════════════════════════════════
+//  COLOR MANAGEMENT
+// ══════════════════════════════════════════════════════
+function syncColor(key, val) {
+  state.colors[key] = val;
+  document.getElementById(`hex-${key}`).value = val;
+  updatePreview();
+}
+
+function syncColorHex(key, val) {
+  if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+    state.colors[key] = val;
+    document.getElementById(`clr-${key}`).value = val;
+    updatePreview();
+  }
+}
+
+function applyPreset(name) {
+  const p = PRESETS[name];
+  if (!p) return;
+  Object.keys(p).forEach(k => {
+    state.colors[k] = p[k];
+    document.getElementById(`clr-${k}`).value = p[k];
+    document.getElementById(`hex-${k}`).value = p[k];
+  });
+  updatePreview();
+  log(`Applied preset: ${name}`, 'info');
+}
+
+// ══════════════════════════════════════════════════════
+//  LIVE PREVIEW UPDATE
+// ══════════════════════════════════════════════════════
+function updatePreview() {
+  const c = state.colors;
+  const title = document.getElementById('cfg-title').value || 'Knowledge Assessment';
+  const dept  = document.getElementById('cfg-dept').value  || 'Fire Department';
+
+  document.getElementById('mock-dept').textContent  = dept.toUpperCase();
+  document.getElementById('mock-title').textContent = title;
+  document.getElementById('mock-dept').style.color  = c.muted;
+  document.getElementById('mock-title').style.color = c.text;
+  document.getElementById('mock-header').style.background    = c.surface;
+  document.getElementById('mock-header').style.borderBottomColor = c.border;
+  document.getElementById('mock-body').style.background      = c.bg;
+
+  // Update logo in preview
+  const logoWrap = document.getElementById('mock-logo-wrap');
+  if (state.logoB64) {
+    logoWrap.outerHTML = `<img class="mock-logo" id="mock-logo-wrap"
+      src="data:${state.logoMime};base64,${state.logoB64}"
+      style="border-color:${c.border};">`;
+  }
+
+  // Update choices
+  document.querySelectorAll('.mock-choice').forEach(el => {
+    el.style.background  = el.classList.contains('selected') ? c.surface + 'dd' : c.surface;
+    el.style.borderColor = el.classList.contains('selected') ? c.accent : c.border;
+    el.style.color       = c.text;
+  });
+  document.querySelectorAll('.mock-choice-key').forEach(el => el.style.color = c.accent);
+
+  // Button
+  document.getElementById('mock-btn').style.background = c.accent;
+  document.getElementById('mock-btn').style.color      = c.bg;
+
+  // Question text
+  document.querySelector('.mock-q').style.color = c.text;
+
+  updateManifestPreview();
+}
+
+function updateQCount(val) {
+  document.getElementById('cfg-qcount-val').textContent = val;
+  updateManifestPreview();
+}
+
+function updateThreshold(val) {
+  document.getElementById('cfg-threshold-val').textContent = val + '%';
+}
+
+function updateManifestPreview() {
+  const id    = document.getElementById('cfg-id').value || 'quiz_001';
+  const title = document.getElementById('cfg-title').value || 'Knowledge Assessment';
+  const dept  = document.getElementById('cfg-dept').value || 'Fire Department';
+  const scorm = document.getElementById('cfg-scorm').value;
+
+  const schemaVer = scorm === '1.2'
+    ? 'ADL SCORM 1.2'
+    : 'ADL SCORM 2004 3rd Edition';
+
+  document.getElementById('manifest-preview').innerHTML = `
+<span class="xml-com">&lt;!-- Auto-generated imsmanifest.xml --&gt;</span>
+<span class="xml-tag">&lt;manifest</span> <span class="xml-attr">identifier</span>=<span class="xml-val">"${id}"</span>
+  <span class="xml-attr">version</span>=<span class="xml-val">"1.0"</span><span class="xml-tag">&gt;</span>
+  <span class="xml-tag">&lt;metadata&gt;</span>
+    <span class="xml-tag">&lt;schema&gt;</span>${schemaVer}<span class="xml-tag">&lt;/schema&gt;</span>
+  <span class="xml-tag">&lt;/metadata&gt;</span>
+  <span class="xml-tag">&lt;organizations</span> <span class="xml-attr">default</span>=<span class="xml-val">"org_${id}"</span><span class="xml-tag">&gt;</span>
+    <span class="xml-tag">&lt;organization</span> <span class="xml-attr">identifier</span>=<span class="xml-val">"org_${id}"</span><span class="xml-tag">&gt;</span>
+      <span class="xml-tag">&lt;title&gt;</span>${dept} — ${title}<span class="xml-tag">&lt;/title&gt;</span>
+      <span class="xml-tag">&lt;item</span> <span class="xml-attr">identifier</span>=<span class="xml-val">"item_${id}"</span>
+        <span class="xml-attr">identifierref</span>=<span class="xml-val">"res_${id}"</span>
+        <span class="xml-attr">isvisible</span>=<span class="xml-val">"true"</span><span class="xml-tag">/&gt;</span>
+    <span class="xml-tag">&lt;/organization&gt;</span>
+  <span class="xml-tag">&lt;/organizations&gt;</span>
+  <span class="xml-tag">&lt;resources&gt;</span>
+    <span class="xml-tag">&lt;resource</span> <span class="xml-attr">identifier</span>=<span class="xml-val">"res_${id}"</span>
+      <span class="xml-attr">type</span>=<span class="xml-val">"webcontent"</span>
+      <span class="xml-attr">adlcp:scormtype</span>=<span class="xml-val">"sco"</span>
+      <span class="xml-attr">href</span>=<span class="xml-val">"index.html"</span><span class="xml-tag">/&gt;</span>
+  <span class="xml-tag">&lt;/resources&gt;</span>
+<span class="xml-tag">&lt;/manifest&gt;</span>`;
+}
+
+// ══════════════════════════════════════════════════════
+//  UPLOAD STATUS HELPER
+// ══════════════════════════════════════════════════════
+function showUploadStatus(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = `upload-status ${type}`;
+  el.textContent = msg;
+}
+
+// ══════════════════════════════════════════════════════
+//  SCORM PACKAGE GENERATION
+// ══════════════════════════════════════════════════════
+async function generateSCORM() {
+  if (state.questions.length === 0) {
+    log('ERROR: No questions loaded', 'err');
+    return;
+  }
+
+  const btn = document.getElementById('btn-generate');
+  btn.disabled = true;
+  btn.textContent = '⟳ Building...';
+  log('Starting SCORM package generation...', 'info');
+
+  const cfg = {
+    title:        document.getElementById('cfg-title').value || 'Knowledge Assessment',
+    dept:         document.getElementById('cfg-dept').value  || 'Fire Department',
+    id:           document.getElementById('cfg-id').value    || 'quiz_001',
+    scorm:        document.getElementById('cfg-scorm').value,
+    qcount:       parseInt(document.getElementById('cfg-qcount').value),
+    threshold:    parseInt(document.getElementById('cfg-threshold').value) / 100,
+    shuffleQ:     document.getElementById('cfg-shuffle-q').value === 'true',
+    shuffleA:     document.getElementById('cfg-shuffle-a').value === 'true',
+    showAnswer:   document.getElementById('cfg-show-answer').value === 'true',
+    retakes:      document.getElementById('cfg-retakes').value === 'true',
+    colors:       {...state.colors},
+    logoB64:      state.logoB64,
+    logoMime:     state.logoMime,
+  };
+
+  try {
+    log(`Building quiz: ${cfg.qcount} questions, ${Math.round(cfg.threshold*100)}% pass threshold`, 'info');
+
+    const zip = new JSZip();
+
+    // 1. imsmanifest.xml
+    log('Generating imsmanifest.xml...', 'info');
+    zip.file('imsmanifest.xml', buildManifest(cfg));
+
+    // 2. scormAPI.js — SCORM 1.2 wrapper
+    log('Generating SCORM API wrapper...', 'info');
+    zip.file('scormAPI.js', buildSCORMAPI(cfg.scorm));
+
+    // 3. index.html — the quiz
+    log('Generating quiz HTML...', 'info');
+    zip.file('index.html', buildQuizHTML(cfg));
+
+    // 4. adlcp namespace xsd (some LMS require this)
+    zip.file('imsmd_rootv1p2p1.xsd', '');
+
+    log('Compressing package...', 'info');
+    const blob = await zip.generateAsync({
+      type: 'blob',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 }
+    }, meta => {
+      if (meta.percent % 25 < 1) {
+        log(`Compression: ${Math.round(meta.percent)}%`, 'info');
+      }
+    });
+
+    const sizeKB = (blob.size / 1024).toFixed(1);
+    log(`Package ready: ${sizeKB} KB`, 'ok');
+    log(`File: ${cfg.id}_scorm.zip`, 'ok');
+
+    // Download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${cfg.id}_scorm.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    log('✓ Download triggered. Upload ZIP to your LMS.', 'ok');
+
+  } catch(err) {
+    log(`ERROR: ${err.message}`, 'err');
+    console.error(err);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<span>⬡</span> Generate SCORM Package';
+}
+
+// ══════════════════════════════════════════════════════
+//  MANIFEST BUILDER
+// ══════════════════════════════════════════════════════
+function buildManifest(cfg) {
+  const is12 = cfg.scorm === '1.2';
+  if (is12) {
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="${cfg.id}"
+  version="1.0"
+  xmlns="http://www.imsproject.org/xsd/imscp_rootv1p1p2"
+  xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_rootv1p2"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.imsproject.org/xsd/imscp_rootv1p1p2 imscp_rootv1p1p2.xsd
+    http://www.adlnet.org/xsd/adlcp_rootv1p2 adlcp_rootv1p2.xsd">
+  <metadata>
+    <schema>ADL SCORM</schema>
+    <schemaversion>1.2</schemaversion>
+  </metadata>
+  <organizations default="org_${cfg.id}">
+    <organization identifier="org_${cfg.id}">
+      <title>${escapeXML(cfg.dept)} — ${escapeXML(cfg.title)}</title>
+      <item identifier="item_${cfg.id}" identifierref="res_${cfg.id}" isvisible="true">
+        <title>${escapeXML(cfg.title)}</title>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="res_${cfg.id}"
+      type="webcontent"
+      adlcp:scormtype="sco"
+      href="index.html">
+      <file href="index.html"/>
+      <file href="scormAPI.js"/>
+    </resource>
+  </resources>
+</manifest>`;
+  } else {
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="${cfg.id}"
+  version="1.0"
+  xmlns="http://www.imsglobal.org/xsd/imscp_v1p1"
+  xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_v1p3"
+  xmlns:adlseq="http://www.adlnet.org/xsd/adlseq_v1p3"
+  xmlns:adlnav="http://www.adlnet.org/xsd/adlnav_v1p3"
+  xmlns:imsss="http://www.imsglobal.org/xsd/imsss"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 imscp_v1p1.xsd
+    http://www.adlnet.org/xsd/adlcp_v1p3 adlcp_v1p3.xsd
+    http://www.adlnet.org/xsd/adlseq_v1p3 adlseq_v1p3.xsd
+    http://www.adlnet.org/xsd/adlnav_v1p3 adlnav_v1p3.xsd
+    http://www.imsglobal.org/xsd/imsss imsss_v1p0.xsd">
+  <metadata>
+    <schema>ADL SCORM</schema>
+    <schemaversion>2004 3rd Edition</schemaversion>
+  </metadata>
+  <organizations default="org_${cfg.id}">
+    <organization identifier="org_${cfg.id}" adlseq:objectivesGlobalToSystem="false">
+      <title>${escapeXML(cfg.dept)} — ${escapeXML(cfg.title)}</title>
+      <item identifier="item_${cfg.id}" identifierref="res_${cfg.id}" isvisible="true">
+        <title>${escapeXML(cfg.title)}</title>
+        <imsss:sequencing>
+          <imsss:deliveryControls completionSetByContent="true" objectiveSetByContent="true"/>
+        </imsss:sequencing>
+      </item>
+      <imsss:sequencing>
+        <imsss:controlMode choice="true" flow="true"/>
+      </imsss:sequencing>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="res_${cfg.id}"
+      type="webcontent"
+      adlcp:scormType="sco"
+      href="index.html">
+      <file href="index.html"/>
+      <file href="scormAPI.js"/>
+    </resource>
+  </resources>
+</manifest>`;
+  }
+}
+
+function escapeXML(str) {
+  return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ══════════════════════════════════════════════════════
+//  SCORM API WRAPPER
+// ══════════════════════════════════════════════════════
+function buildSCORMAPI(version) {
+  if (version === '1.2') {
+    return `// SCORM 1.2 API Wrapper
+var SCORM = (function() {
+  var api = null;
+  var initialized = false;
+
+  function findAPI(win) {
+    var tries = 0;
+    while (!win.API && win.parent && win.parent !== win && tries < 10) {
+      win = win.parent; tries++;
+    }
+    return win.API || null;
+  }
+
+  function init() {
+    api = findAPI(window);
+    if (!api) { console.log('SCORM: No API found — standalone mode'); return false; }
+    var r = api.LMSInitialize('');
+    initialized = (r === 'true' || r === true);
+    if (initialized) console.log('SCORM 1.2: Initialized');
+    else console.warn('SCORM 1.2: LMSInitialize failed');
+    return initialized;
+  }
+
+  function set(key, val) {
+    if (!api || !initialized) return false;
+    return api.LMSSetValue(key, String(val)) === 'true';
+  }
+
+  function commit() {
+    if (!api || !initialized) return;
+    api.LMSCommit('');
+  }
+
+  function finish(passed, score) {
+    if (!api || !initialized) return;
+    set('cmi.core.score.raw', Math.round(score));
+    set('cmi.core.score.min', '0');
+    set('cmi.core.score.max', '100');
+    set('cmi.core.lesson_status', passed ? 'passed' : 'failed');
+    set('cmi.core.exit', passed ? 'normal' : 'suspend');
+    commit();
+    // Never call LMSFinish here — results screen must stay visible
+    // Exit button is the only thing that terminates the session
+  }
+
+  function exit() {
+    if (!api || !initialized) return;
+    set('cmi.core.exit', 'suspend');
+    commit();
+    api.LMSFinish('');
+    initialized = false;
+  }
+
+  function get(key) {
+    if (!api || !initialized) return '';
+    return api.LMSGetValue(key) || '';
+  }
+
+  function saveSuspend(data) {
+    if (!api || !initialized) return;
+    set('cmi.suspend_data', JSON.stringify(data));
+    commit();
+  }
+
+  function loadSuspend() {
+    if (!api || !initialized) return null;
+    // Don't check cmi.core.entry — some LMS platforms reset it to ab-initio
+    // on logout/login even when suspend_data persists. Just check the data.
+    var raw = get('cmi.suspend_data');
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch(e) { return null; }
+  }
+
+  function clearSuspend() {
+    if (!api || !initialized) return;
+    set('cmi.suspend_data', '');
+    commit();
+  }
+
+  return { init: init, finish: finish, exit: exit, set: set, get: get, commit: commit, saveSuspend: saveSuspend, loadSuspend: loadSuspend, clearSuspend: clearSuspend };
+})();`;
+  } else {
+    // SCORM 2004
+    return `// SCORM 2004 API Wrapper
+var SCORM = (function() {
+  var api = null;
+  var initialized = false;
+
+  function findAPI(win) {
+    var tries = 0;
+    while (!win.API_1484_11 && win.parent && win.parent !== win && tries < 10) {
+      win = win.parent; tries++;
+    }
+    return win.API_1484_11 || null;
+  }
+
+  function init() {
+    api = findAPI(window);
+    if (!api) { console.log('SCORM 2004: No API found'); return false; }
+    var r = api.Initialize('');
+    initialized = (r === 'true' || r === true);
+    return initialized;
+  }
+
+  function set(key, val) {
+    if (!api || !initialized) return false;
+    return api.SetValue(key, String(val)) === 'true';
+  }
+
+  function commit() {
+    if (!api || !initialized) return;
+    api.Commit('');
+  }
+
+  function finish(passed, score) {
+    if (!api || !initialized) return;
+    set('cmi.score.raw', Math.round(score));
+    set('cmi.score.min', '0');
+    set('cmi.score.max', '100');
+    set('cmi.score.scaled', (score/100).toFixed(4));
+    set('cmi.success_status', passed ? 'passed' : 'failed');
+    set('cmi.completion_status', 'completed');
+    set('cmi.exit', passed ? 'normal' : 'suspend');
+    commit();
+    // Never Terminate here — let results screen stay visible
+  }
+
+  function exit() {
+    if (!api || !initialized) return;
+    set('cmi.exit', 'suspend');
+    commit();
+    api.Terminate('');
+    initialized = false;
+  }
+
+  function get(key) {
+    if (!api || !initialized) return '';
+    return api.GetValue(key) || '';
+  }
+
+  function saveSuspend(data) {
+    if (!api || !initialized) return;
+    set('cmi.suspend_data', JSON.stringify(data));
+    commit();
+  }
+
+  function loadSuspend() {
+    if (!api || !initialized) return null;
+    // Don't check cmi.entry — NinthBrain resets it on logout/login.
+    // Storyline pattern: just check if suspend_data has content.
+    var raw = get('cmi.suspend_data');
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch(e) { return null; }
+  }
+
+  function clearSuspend() {
+    if (!api || !initialized) return;
+    set('cmi.suspend_data', '');
+    commit();
+  }
+
+  return { init: init, finish: finish, exit: exit, set: set, get: get, commit: commit, saveSuspend: saveSuspend, loadSuspend: loadSuspend, clearSuspend: clearSuspend };
+})();`;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  QUIZ HTML BUILDER
+// ══════════════════════════════════════════════════════
+function buildQuizHTML(cfg) {
+  const c = cfg.colors;
+  const logoTag = cfg.logoB64
+    ? `<img class="header-logo" src="data:${cfg.logoMime};base64,${cfg.logoB64}" alt="${escapeXML(cfg.dept)}">`
+    : `<div class="header-logo-placeholder">${cfg.dept.slice(0,3).toUpperCase()}</div>`;
+
+  const questionsJSON = JSON.stringify(state.questions, null, 0);
+
+  // Obfuscate question bank — simple btoa encoding to deter casual snooping
+  const obfuscated = btoa(unescape(encodeURIComponent(questionsJSON)));
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeXML(cfg.title)}</title>
+<script src="scormAPI.js"><\/script>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      ${c.bg};
+  --surface: ${c.surface};
+  --border:  ${c.border};
+  --accent:  ${c.accent};
+  --text:    ${c.text};
+  --muted:   ${c.muted};
+  --pass:    #238636;
+  --pass-lit:#3fb950;
+  --fail:    #da3633;
+  --fail-lit:#ff7b72;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;font-size:15px;line-height:1.6;min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--surface);border-bottom:2px solid var(--accent);padding:10px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:10;box-shadow:0 2px 12px rgba(0,0,0,0.4)}
+.header-logo{width:44px;height:44px;border-radius:50%;object-fit:cover;border:1px solid var(--border);flex-shrink:0}
+.header-logo-placeholder{width:44px;height:44px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:13px;color:var(--accent);flex-shrink:0}
+.header-titles{flex:1;line-height:1.2}
+.header-dept{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted)}
+.header-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;letter-spacing:1px;color:var(--text);text-transform:uppercase}
+#progress-wrap{display:none;align-items:center;gap:10px;font-size:12px;color:var(--muted);font-family:'Barlow Condensed',sans-serif;letter-spacing:1px}
+#progress-bar-outer{width:100px;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+#progress-bar{height:100%;background:var(--accent);width:0%;transition:width 0.4s ease}
+main{flex:1;padding:28px 20px 40px;max-width:720px;width:100%;margin:0 auto}
+.screen{display:none}
+.screen.active{display:block;animation:fadeUp 0.3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+/* START */
+#start-screen{text-align:center;padding-top:20px}
+.coin-wrap{position:relative;width:100px;height:100px;margin:0 auto 20px}
+.coin-wrap img,.coin-wrap .coin-ph{width:100px;height:100px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);box-shadow:0 0 20px rgba(0,0,0,0.5)}
+.coin-wrap .coin-ph{display:flex;align-items:center;justify-content:center;background:var(--surface);font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;color:var(--accent)}
+#start-screen h2{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:30px;letter-spacing:2px;text-transform:uppercase;color:var(--text);line-height:1.1;margin-bottom:4px}
+.subtitle{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:24px}
+.divider{width:50px;height:1px;background:var(--accent);margin:0 auto 24px;opacity:0.4}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:28px;text-align:left}
+.info-card{background:var(--surface);border:1px solid var(--border);border-top:2px solid var(--accent);padding:12px 14px}
+.info-card .lbl{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:3px}
+.info-card .val{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:22px;color:var(--text)}
+/* QUESTION */
+.q-meta{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.q-num-badge{background:var(--surface);border:1px solid var(--border);font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:var(--accent);text-transform:uppercase;padding:3px 10px}
+.q-type-badge{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
+.q-text{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:20px;line-height:1.35;color:var(--text);margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--border)}
+.choices{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
+.choice-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:12px 16px;text-align:left;cursor:pointer;font-family:'Barlow',sans-serif;font-size:14px;line-height:1.4;display:flex;align-items:flex-start;gap:12px;transition:border-color 0.15s,background 0.15s,box-shadow 0.15s;position:relative;width:100%}
+.choice-btn:hover:not(:disabled){border-color:var(--accent);background:var(--surface);box-shadow:inset 2px 0 0 var(--accent)}
+.choice-btn.correct{border-color:var(--pass-lit);background:rgba(35,134,54,0.08);box-shadow:inset 2px 0 0 var(--pass-lit)}
+.choice-btn.wrong{border-color:var(--fail-lit);background:rgba(218,54,51,0.08);box-shadow:inset 2px 0 0 var(--fail-lit)}
+.choice-btn:disabled{cursor:default}
+.choice-key{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;color:var(--accent);min-width:16px;padding-top:1px;flex-shrink:0}
+.choice-btn.correct .choice-key{color:var(--pass-lit)}
+.choice-btn.wrong .choice-key{color:var(--fail-lit)}
+.result-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px}
+#feedback-bar{padding:10px 14px;margin-bottom:18px;font-size:13px;font-weight:500;display:none;border-left:2px solid}
+#feedback-bar.correct{background:rgba(35,134,54,0.1);border-color:var(--pass-lit);color:var(--pass-lit);display:block}
+#feedback-bar.incorrect{background:rgba(218,54,51,0.1);border-color:var(--fail-lit);color:var(--fail-lit);display:block}
+/* Responsive */
+@media(max-width:640px){
+  header{padding:8px 12px;gap:8px}
+  .header-logo{width:36px;height:36px}
+  .header-dept{font-size:9px;letter-spacing:2px}
+  .header-title{font-size:14px;letter-spacing:0.5px}
+  #progress-wrap{gap:6px}
+  #progress-bar-outer{width:70px}
+  #progress-wrap span{font-size:10px}
+  main{padding:14px 12px 28px}
+  #start-screen{padding-top:16px}
+  .coin-wrap{width:80px;height:80px}
+  .coin-wrap img{width:80px;height:80px}
+  #start-screen h2{font-size:24px}
+  .info-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .info-card{padding:10px 12px}
+  .info-card .val{font-size:20px}
+  .q-meta{margin-bottom:10px}
+  .q-text{font-size:17px;margin-bottom:16px;padding-bottom:14px}
+  .choices{gap:7px;margin-bottom:18px}
+  .choice-btn{padding:12px 12px;font-size:13px;min-height:44px}
+  .btn{padding:12px 20px;font-size:13px}
+  .btn-row{justify-content:stretch}
+  .btn-row .btn{flex:1;text-align:center}
+  #results-screen{padding-top:12px}
+  .score-ring-wrap{width:120px;height:120px;margin-bottom:16px}
+  .score-ring-wrap svg{width:120px;height:120px}
+  .score-pct{font-size:32px}
+  .verdict{font-size:36px;letter-spacing:3px}
+  .verdict-sub{font-size:12px;margin-bottom:16px}
+  .score-breakdown{display:grid;grid-template-columns:1fr 1fr 1fr;width:100%}
+  .bd-cell{padding:10px 8px}
+  .bd-cell .num{font-size:22px}
+  .btn-row[style*="justify-content:center"]{flex-wrap:wrap}
+  .scorm-note{font-size:10px}
+}
+@media(max-width:380px){
+  .info-grid{grid-template-columns:1fr 1fr}
+  .info-card .val{font-size:18px}
+  .q-text{font-size:15px}
+  .choice-btn{font-size:12px}
+  .score-breakdown{grid-template-columns:1fr 1fr 1fr}
+  .bd-cell .num{font-size:18px}
+}
+/* BUTTONS */
+.btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;letter-spacing:2px;text-transform:uppercase;padding:11px 26px;border:none;cursor:pointer;transition:all 0.15s}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:var(--accent);color:var(--bg);font-weight:900}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-primary:disabled{background:var(--border);color:var(--muted);cursor:not-allowed}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--text)}
+.btn-row{display:flex;gap:12px;justify-content:flex-end;align-items:center}
+/* RESULTS */
+#results-screen{text-align:center;padding-top:16px}
+.score-ring-wrap{margin:0 auto 20px;width:140px;height:140px;position:relative}
+.score-ring-wrap svg{transform:rotate(-90deg);width:140px;height:140px}
+.score-ring-bg{fill:none;stroke:var(--border);stroke-width:7}
+.score-ring-fg{fill:none;stroke-width:7;stroke-linecap:round;stroke-dasharray:339.29;stroke-dashoffset:339.29;transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1),stroke 0.3s}
+.score-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.score-pct{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:38px;line-height:1}
+.score-sublabel{font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-top:2px}
+.verdict{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:44px;letter-spacing:4px;text-transform:uppercase;margin-bottom:6px}
+.verdict.pass{color:var(--pass-lit)}
+.verdict.fail{color:var(--fail-lit)}
+.verdict-sub{color:var(--muted);font-size:13px;margin-bottom:22px;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px}
+.score-breakdown{display:inline-grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:24px}
+.bd-cell{background:var(--surface);padding:12px 20px;text-align:center}
+.bd-cell .num{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:26px;color:var(--text)}
+.bd-cell .lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)}
+.scorm-note{font-size:11px;color:var(--muted);margin-top:16px;font-family:'Barlow Condensed',sans-serif;letter-spacing:0.5px}
+</style>
+</head>
+<body>
+<header>
+  ${logoTag}
+  <div class="header-titles">
+    <div class="header-dept">${escapeXML(cfg.dept)}</div>
+    <div class="header-title">${escapeXML(cfg.title)}</div>
+  </div>
+  <div id="progress-wrap">
+    <span id="progress-text">0 / ${cfg.qcount}</span>
+    <div id="progress-bar-outer"><div id="progress-bar"></div></div>
+  </div>
+</header>
+<main>
+  <div id="start-screen" class="screen active">
+    <div class="coin-wrap">
+      ${cfg.logoB64
+        ? `<img src="data:${cfg.logoMime};base64,${cfg.logoB64}" alt="${escapeXML(cfg.dept)}">`
+        : `<div class="coin-ph">${cfg.dept.slice(0,3).toUpperCase()}</div>`}
+    </div>
+    <h2>${escapeXML(cfg.title)}</h2>
+    <p class="subtitle">${escapeXML(cfg.dept)}</p>
+    <div class="divider"></div>
+    <div class="info-grid">
+      <div class="info-card"><div class="lbl">Questions</div><div class="val">${cfg.qcount}</div></div>
+      <div class="info-card"><div class="lbl">To Pass</div><div class="val">${Math.round(cfg.threshold*100)}%</div></div>
+      <div class="info-card"><div class="lbl">Format</div><div class="val">MC + T/F</div></div>
+      <div class="info-card"><div class="lbl">Attempts</div><div class="val">${cfg.retakes ? '∞' : '1'}</div></div>
+    </div>
+    <button class="btn btn-primary" onclick="startQuiz()">Begin Assessment</button>
+  </div>
+
+  <div id="question-screen" class="screen">
+    <div class="q-meta">
+      <span class="q-num-badge" id="q-number">Q 1 of ${cfg.qcount}</span>
+      <span class="q-type-badge" id="q-type-badge">Multiple Choice</span>
+    </div>
+    <div class="q-text" id="q-text"></div>
+    <div class="choices" id="choices"></div>
+    <div id="feedback-bar"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()" disabled>Next</button>
+    </div>
+  </div>
+
+  <div id="results-screen" class="screen">
+    <div class="score-ring-wrap">
+      <svg viewBox="0 0 120 120">
+        <circle class="score-ring-bg" cx="60" cy="60" r="54"/>
+        <circle class="score-ring-fg" id="score-ring" cx="60" cy="60" r="54"/>
+      </svg>
+      <div class="score-center">
+        <div class="score-pct" id="score-pct">--%</div>
+        <div class="score-sublabel">Score</div>
+      </div>
+    </div>
+    <div class="verdict" id="verdict"></div>
+    <div class="verdict-sub" id="verdict-sub"></div>
+    <div class="score-breakdown">
+      <div class="bd-cell"><div class="num" id="res-correct">0</div><div class="lbl">Correct</div></div>
+      <div class="bd-cell"><div class="num" id="res-wrong">0</div><div class="lbl">Incorrect</div></div>
+      <div class="bd-cell"><div class="num" id="res-total">0</div><div class="lbl">Total</div></div>
+    </div>
+    <div class="btn-row" style="justify-content:center;gap:14px;">
+      ${cfg.retakes ? '<button class="btn btn-ghost" onclick="retakeQuiz()">Retake</button>' : ''}
+      <button class="btn btn-ghost" onclick="exitCourse()" style="border-color:var(--fail-lit);color:var(--fail-lit);">Exit</button>
+    </div>
+    <div class="scorm-note" id="scorm-note">Reporting score to LMS...</div>
+  </div>
+</main>
+
+<script>
+// CONFIG
+var CONFIG={passThreshold:${cfg.threshold},questionsPerDraw:${cfg.qcount},shuffleQ:${cfg.shuffleQ},shuffleA:${cfg.shuffleA},showAnswer:${cfg.showAnswer},retakes:${cfg.retakes}};
+// QUESTION BANK (obfuscated)
+var _qb='${obfuscated}';
+var QUESTION_BANK=JSON.parse(decodeURIComponent(escape(atob(_qb))));
+// STATE
+var currentQuestions=[],currentIndex=0,score=0,answered=false;
+// INIT SCORM
+SCORM.init();
+var _resumed=false;var _savedState=null;(function(){_savedState=SCORM.loadSuspend();if(_savedState&&_savedState.q&&_savedState.q.length){var overlay=document.createElement('div');overlay.id='resume-overlay';overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;display:flex;align-items:center;justify-content:center;animation:fadeUp 0.2s ease';var qnum=(_savedState.i||0)+1,qtotal=_savedState.q.length,sc=_savedState.s||0;overlay.innerHTML='<div style="background:var(--surface);border:1px solid var(--accent);padding:32px 28px;max-width:380px;width:90%;text-align:center;">'+'<div style="font-family:Barlow Condensed,sans-serif;font-size:11px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:12px;">Previous Attempt Found</div>'+'<div style="font-family:Barlow Condensed,sans-serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:6px;">Resume Assessment?</div>'+'<div style="font-size:13px;color:var(--muted);margin-bottom:24px;">You were on question '+qnum+' of '+qtotal+'<br>Score so far: '+sc+' correct</div>'+'<div style="display:flex;gap:12px;justify-content:center;">'+'<button onclick="doResume()" style="font-family:Barlow Condensed,sans-serif;font-weight:900;font-size:13px;letter-spacing:2px;text-transform:uppercase;padding:10px 22px;border:none;cursor:pointer;background:var(--accent);color:var(--bg);">Continue</button>'+'<button onclick="doFresh()" style="font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:13px;letter-spacing:2px;text-transform:uppercase;padding:10px 22px;border:1px solid var(--border);cursor:pointer;background:transparent;color:var(--muted);">Start Over</button>'+'</div></div>';document.body.appendChild(overlay);}})();function doResume(){var overlay=document.getElementById('resume-overlay');if(overlay)overlay.remove();if(!_savedState||!_savedState.q)return;currentQuestions=_savedState.q.map(function(i){return QUESTION_BANK[i];});currentIndex=_savedState.i||0;score=_savedState.s||0;document.getElementById('progress-wrap').style.display='flex';showScreen('question-screen');renderQuestion();}function doFresh(){var overlay=document.getElementById('resume-overlay');if(overlay)overlay.remove();SCORM.clearSuspend();_savedState=null;}
+function shuffle(a){var b=[...a];for(var i=b.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+function startQuiz(){currentQuestions=(CONFIG.shuffleQ?shuffle(QUESTION_BANK):QUESTION_BANK).slice(0,CONFIG.questionsPerDraw);currentIndex=0;score=0;SCORM.saveSuspend({q:currentQuestions.map(function(q){return QUESTION_BANK.indexOf(q);}),i:0,s:0});showScreen('question-screen');document.getElementById('progress-wrap').style.display='flex';renderQuestion()}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+function renderQuestion(){answered=false;var q=currentQuestions[currentIndex],total=currentQuestions.length;document.getElementById('q-number').textContent='Q '+(currentIndex+1)+' of '+total;document.getElementById('q-type-badge').textContent=q.type==='TF'?'True / False':'Multiple Choice';document.getElementById('q-text').textContent=q.text;document.getElementById('progress-bar').style.width=(currentIndex/total*100)+'%';document.getElementById('progress-text').textContent=currentIndex+' / '+total;var fb=document.getElementById('feedback-bar');fb.className='';fb.style.display='none';var nb=document.getElementById('next-btn');nb.disabled=true;nb.textContent=currentIndex===total-1?'See Results':'Next';var el=document.getElementById('choices');el.innerHTML='';var letters=['A','B','C','D','E'],idxs=q.choices.map((_,i)=>i),order=CONFIG.shuffleA&&q.type!=='TF'?shuffle(idxs):idxs;order.forEach((oi,pos)=>{var btn=document.createElement('button');btn.className='choice-btn';btn.dataset.origIdx=oi;var key=document.createElement('span');key.className='choice-key';key.textContent=q.type==='TF'?(oi===0?'T':'F'):letters[pos];var txt=document.createElement('span');txt.textContent=q.choices[oi];btn.appendChild(key);btn.appendChild(txt);btn.addEventListener('click',()=>selectChoice(btn,oi,q));el.appendChild(btn)})}
+function selectChoice(btn,ci,q){if(answered)return;answered=true;var ok=(ci===q.correct);if(ok)score++;document.querySelectorAll('.choice-btn').forEach(b=>{b.disabled=true;var oi=parseInt(b.dataset.origIdx);if(oi===q.correct){b.classList.add('correct');var ic=document.createElement('span');ic.className='result-icon';ic.textContent='✓';b.appendChild(ic)}else if(b===btn&&!ok){b.classList.add('wrong');var ic=document.createElement('span');ic.className='result-icon';ic.textContent='✗';b.appendChild(ic)}});if(CONFIG.showAnswer){var fb=document.getElementById('feedback-bar');fb.className=ok?'correct':'incorrect';fb.textContent=ok?'✓ Correct.':'✗ Incorrect. Correct answer: '+q.choices[q.correct]}document.getElementById('next-btn').disabled=false}
+function nextQuestion(){currentIndex++;SCORM.saveSuspend({q:currentQuestions.map(function(q){return QUESTION_BANK.indexOf(q);}),i:currentIndex,s:score});if(currentIndex>=currentQuestions.length)showResults();else{var qs=document.getElementById('question-screen');qs.classList.remove('active');setTimeout(()=>{qs.classList.add('active');renderQuestion()},80)}}
+function showResults(){var total=currentQuestions.length,pct=score/total,pi=Math.round(pct*100),passed=pct>=CONFIG.passThreshold;document.getElementById('progress-bar').style.width='100%';document.getElementById('progress-text').textContent=total+' / '+total;showScreen('results-screen');var circ=339.29,ring=document.getElementById('score-ring');ring.style.stroke=passed?'#3fb950':'#ff7b72';setTimeout(()=>{ring.style.strokeDashoffset=circ-(circ*pct)},120);var pe=document.getElementById('score-pct');pe.textContent=pi+'%';pe.style.color=passed?'#3fb950':'#ff7b72';var ve=document.getElementById('verdict');ve.textContent=passed?'PASS':'FAIL';ve.className='verdict '+(passed?'pass':'fail');document.getElementById('verdict-sub').textContent=passed?'You met the '+Math.round(CONFIG.passThreshold*100)+'% passing threshold.':Math.round(CONFIG.passThreshold*100)+'% required. Please review and retry.';document.getElementById('res-correct').textContent=score;document.getElementById('res-wrong').textContent=total-score;document.getElementById('res-total').textContent=total;if(passed){SCORM.clearSuspend();}SCORM.finish(passed,pi);document.getElementById('scorm-note').textContent=passed?'Score reported to LMS: '+pi+'% — PASS':'Score reported to LMS: '+pi+'% — FAIL'}
+function retakeQuiz(){SCORM.clearSuspend();showScreen('start-screen');document.getElementById('progress-wrap').style.display='none';document.getElementById('progress-bar').style.width='0%'}
+function exitCourse(){SCORM.exit();var bg=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(),tx=getComputedStyle(document.documentElement).getPropertyValue('--text').trim(),ac=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();document.body.innerHTML='<div style="font-family:Barlow Condensed,sans-serif;padding:60px 20px;text-align:center;background:'+bg+';color:'+tx+';min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="font-size:40px;margin-bottom:16px;color:'+ac+'">&#10003;</div><h2 style="font-size:28px;letter-spacing:3px;text-transform:uppercase;color:'+ac+'">Session Saved</h2><p style="margin-top:12px;opacity:0.5;font-size:13px;letter-spacing:1px">Your score has been recorded.<br>You may close this window.</p></div>';try{window.close()}catch(e){}}
+<\/script>
+</body>
+</html>`;
+}
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+updatePreview();
+updateManifestPreview();
+log('SCORM Builder initialized. SCORM 2004 3rd Ed. default.', 'info');
+// Warn if running from file:// — FileReader may be blocked
+if (window.location.protocol === 'file:') {
+  document.getElementById('file-protocol-warning').style.display = 'block';
+  log('WARNING: Running from file:// — use Paste TSV or run via local server', 'warn');
+}
+log('Step 1: Upload or paste a TSV question bank to begin.', 'info');
+</script>
+
+</body>
+</html>
