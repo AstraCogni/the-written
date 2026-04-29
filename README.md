@@ -58,7 +58,8 @@ A sample question bank (`sample_questions.tsv`) is included to get you started.
 - Session suspend/resume — learners pick up where they left off across browser sessions
 - Question and answer shuffling per attempt
 - Configurable pass threshold, question draw count, and retake policy
-- Per-question feedback with correct answer reveal
+- Per-question feedback text from TSV — shown after answering, optional per question
+- Independent toggles for revealing the correct answer and showing feedback text — supports formative and summative modes
 - Logo/seal upload embedded as base64 — no external assets in the package
 - Five color presets + full custom color control
 - Live quiz preview — no LMS, no ZIP, opens instantly in a new tab

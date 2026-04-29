@@ -950,7 +950,7 @@ body::before {
     <ol class="help-list">
       <li><strong>Step 1 — Questions:</strong> Upload a TSV file, paste questions directly, or click <em>load sample EMS questions</em> to try it immediately with built-in examples.</li>
       <li><strong>Step 2 — Logo:</strong> Upload your department seal or patch. Optional but recommended.</li>
-      <li><strong>Step 3 — Configure:</strong> Set your course title, department name, pass threshold, question count, and shuffle behavior.</li>
+      <li><strong>Step 3 — Configure:</strong> Set your course title, department name, pass threshold, question count, shuffle behavior, and feedback options.</li>
       <li><strong>Step 4 — Colors:</strong> Choose a preset or dial in custom colors to match your organization.</li>
       <li>Click <strong>▶ Preview Quiz</strong> to see exactly what your crew will see — no LMS needed.</li>
       <li>Click <strong>Generate SCORM Package</strong> — a ZIP file downloads automatically.</li>
@@ -969,6 +969,16 @@ body::before {
       <li>Up to 5 answer choices. Empty columns between last choice and CorrectIndex are ignored.</li>
     </ul>
     <p class="help-p" style="margin-top:8px;">Open <strong>sample_questions.tsv</strong> in Excel to see the format in action.</p>
+  </div>
+
+  <div class="help-section">
+    <div class="help-heading">Feedback Options</div>
+    <p class="help-p">Two independent toggles control what learners see after answering:</p>
+    <ul class="help-list help-list-plain">
+      <li><strong>Reveal Correct Answer:</strong> Highlights the correct choice in green with a ✓ (and wrong selection in red). Turn off for high-stakes assessments where you don't want to give away answers.</li>
+      <li><strong>Show Feedback Text:</strong> Displays the explanation from the TSV Feedback column after each answer. Only appears if the question has feedback text. Turn off for a clean summative experience.</li>
+    </ul>
+    <p class="help-p" style="margin-top:8px;">With both off, choices simply disable and Next unlocks — no hints of any kind.</p>
   </div>
 
   <div class="help-section">
