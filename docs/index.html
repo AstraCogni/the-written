@@ -1348,12 +1348,11 @@ function parseTSV(rawText) {
 
     const qtext   = parts[1].trim();
     const last    = parts[parts.length - 1].trim();
-    const lastNum = parseInt(last);
     let correctIdx, feedback, choiceEnd;
 
-    if (!isNaN(lastNum)) {
-      // Old format: CorrectIndex is the last column
-      correctIdx = lastNum;
+    if (/^-?\d+$/.test(last)) {
+      // Old format: CorrectIndex is the last column (digits only, optional leading minus)
+      correctIdx = parseInt(last);
       feedback   = null;
       choiceEnd  = parts.length - 1;
     } else {
