@@ -71,10 +71,11 @@
   <div class="help-section">
     <div class="help-heading">Question Bank Format</div>
     <p class="help-p">Tab-separated values (.tsv), one question per row. First row is a header — always skipped.</p>
-    <div class="help-code">QuestionType  [TAB]  QuestionText  [TAB]  Choice1  [TAB]  Choice2...  [TAB]  CorrectIndex</div>
+    <div class="help-code">QuestionType  [TAB]  QuestionText  [TAB]  Choice1  [TAB]  Choice2...  [TAB]  CorrectIndex  [TAB]  Feedback</div>
     <ul class="help-list help-list-plain">
       <li><strong>QuestionType:</strong> MC (multiple choice) or TF (true/false)</li>
-      <li><strong>CorrectIndex:</strong> Zero-based — first choice = 0, second = 1, etc. Always the last column.</li>
+      <li><strong>CorrectIndex:</strong> Zero-based — first choice = 0, second = 1, etc.</li>
+      <li><strong>Feedback:</strong> Optional — explanation shown after the learner answers. Leave the column off entirely for no feedback.</li>
       <li>Up to 5 answer choices. Empty columns between last choice and CorrectIndex are ignored.</li>
     </ul>
     <p class="help-p" style="margin-top:8px;">Open <strong>sample_questions.tsv</strong> in Excel to see the format in action.</p>
@@ -125,7 +126,7 @@
               <input type="file" id="tsv-file" accept=".tsv,.txt,.csv" onchange="handleTSV(event)">
               <div class="upload-icon">⬡</div>
               <div class="upload-text"><strong>DROP TSV FILE</strong> or click to browse</div>
-              <div class="upload-text" style="margin-top:4px; font-size:10px;">Columns: QuestionType · QuestionText · Choice1 · Choice2 · ... · CorrectIndex</div>
+              <div class="upload-text" style="margin-top:4px; font-size:10px;">Columns: QuestionType · QuestionText · Choice1 · Choice2 · ... · CorrectIndex · Feedback (optional)</div>
             </div>
             <div class="upload-status" id="tsv-status"></div>
           </div>
