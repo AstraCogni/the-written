@@ -4,3 +4,7 @@ test-results/
 .playwright/
 *.zip
 HOG_questions.tsv
+CLAUDE.md
+SCORM_Builder.html
+SCORM_Builder_README.md
+dist/

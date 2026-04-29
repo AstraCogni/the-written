@@ -19,7 +19,7 @@ test('escapeXML: handles null/undefined gracefully', () => {
 
 // ── buildManifest — SCORM 1.2 ────────────────────────────────────────────────
 
-const CFG_12 = { id: 'hog_quiz', title: 'HOG Knowledge Check', dept: 'IFD', scorm: '1.2' };
+const CFG_12 = { id: 'test_quiz', title: 'Knowledge Check', dept: 'Test Dept', scorm: '1.2' };
 
 test('SCORM 1.2 manifest: schema version', () => {
   const xml = buildManifest(CFG_12);
@@ -46,7 +46,7 @@ test('SCORM 1.2 manifest: scormAPI.js is inlined, not listed as a resource file'
 
 // ── buildManifest — SCORM 2004 ───────────────────────────────────────────────
 
-const CFG_2004 = { id: 'hog_quiz', title: 'HOG Knowledge Check', dept: 'IFD', scorm: '2004' };
+const CFG_2004 = { id: 'test_quiz', title: 'Knowledge Check', dept: 'Test Dept', scorm: '2004' };
 
 test('SCORM 2004 manifest: schema version', () => {
   const xml = buildManifest(CFG_2004);

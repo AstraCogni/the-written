@@ -25,7 +25,7 @@ const QUESTIONS = [
 
 const BASE_CFG = {
   title:     'Test Quiz',
-  dept:      'IFD Test',
+  dept:      'Test Dept',
   id:        'test_001',
   qcount:    3,
   threshold: 0.8,
