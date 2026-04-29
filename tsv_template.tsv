@@ -1,6 +1,6 @@
-QuestionType	QuestionText	Choice1	Choice2	Choice3	Choice4	Choice5	CorrectIndex
-TF	True/False: [Your true/false statement here.]	True	False				0
-MC	[Your multiple choice question here?]	[Wrong answer]	[Correct answer]	[Wrong answer]	[Wrong answer]		1
-MC	[Question with 5 choices?]	[Choice A]	[Choice B]	[Choice C]	[Choice D]	[Correct answer E]	4
-TF	True/False: [A false statement here.]	True	False				1
-MC	[Another question?]	[Correct answer]	[Wrong answer]	[Wrong answer]	[Wrong answer]		0
+QuestionType	QuestionText	Choice1	Choice2	Choice3	Choice4	Choice5	CorrectIndex	Feedback
+TF	True/False: [Your true/false statement here.]	True	False				0	[Optional: explanation shown after the learner answers.]
+MC	[Your multiple choice question here?]	[Wrong answer]	[Correct answer]	[Wrong answer]	[Wrong answer]		1	[Optional: why the correct answer is correct.]
+MC	[Question with 5 choices?]	[Choice A]	[Choice B]	[Choice C]	[Choice D]	[Correct answer E]	4	[Optional: feedback text here, or delete this column entirely for no feedback.]
+TF	True/False: [A false statement here.]	True	False				1	[Optional: feedback text here.]
+MC	[Another question?]	[Correct answer]	[Wrong answer]	[Wrong answer]	[Wrong answer]		0	[Optional: feedback text here.]
