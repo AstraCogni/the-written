@@ -241,12 +241,21 @@
 
           <div class="field-row">
             <div class="field">
-              <div class="field-label">Show Feedback After</div>
-              <select class="field-input" id="cfg-show-answer">
-                <option value="true" selected>Each question</option>
-                <option value="false">End of quiz only</option>
+              <div class="field-label">Reveal Correct Answer</div>
+              <select class="field-input" id="cfg-show-correct">
+                <option value="true" selected>Yes — highlight correct choice</option>
+                <option value="false">No — disable all choices only</option>
               </select>
             </div>
+            <div class="field">
+              <div class="field-label">Show Feedback Text</div>
+              <select class="field-input" id="cfg-show-answer">
+                <option value="true" selected>Yes — after each question</option>
+                <option value="false">No — never</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
             <div class="field">
               <div class="field-label">Allow Retakes</div>
               <select class="field-input" id="cfg-retakes">
@@ -254,6 +263,7 @@
                 <option value="false">No — single attempt</option>
               </select>
             </div>
+            <div class="field"></div>
           </div>
         </div>
       </div>

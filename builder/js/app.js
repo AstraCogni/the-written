@@ -210,6 +210,7 @@ function buildCfg() {
     threshold:  parseInt(document.getElementById('cfg-threshold').value) / 100,
     shuffleQ:   document.getElementById('cfg-shuffle-q').value === 'true',
     shuffleA:   document.getElementById('cfg-shuffle-a').value === 'true',
+    showCorrect: document.getElementById('cfg-show-correct').value === 'true',
     showAnswer: document.getElementById('cfg-show-answer').value === 'true',
     retakes:    document.getElementById('cfg-retakes').value === 'true',
     colors:     {...state.colors},
